@@ -3,184 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Scrum Board SMK</title>
+    <title>Scrum Board V2 - LocalStorage</title>
     <style>
-        /* CSS: Dandanin Tampilan Biar Mirip Trello */
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #2c3e50; /* Dark Mode biar pro */
-            color: white;
-            padding: 20px;
-        }
-
+        /* GAYA TAMPILAN (Sama seperti V1) */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #2c3e50; color: white; padding: 20px; }
         h1 { text-align: center; margin-bottom: 30px; }
-
-        /* Input Area */
-        .input-area {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-
-        input {
-            padding: 10px;
-            width: 300px;
-            border-radius: 5px;
-            border: none;
-        }
-
-        button.btn-add {
-            padding: 10px 20px;
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
+        .input-area { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; }
+        input { padding: 10px; width: 300px; border-radius: 5px; border: none; }
+        button.btn-add { padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         button.btn-add:hover { background-color: #2ecc71; }
-
-        /* Board Container (Wadah Utama) */
-        .board {
-            display: flex;
-            justify-content: space-between; /* Jarak antar kolom */
-            gap: 20px;
-        }
-
-        /* Kolom (To Do, In Progress, Done) */
-        .column {
-            background-color: #ecf0f1;
-            color: #2c3e50;
-            width: 32%;
-            min-height: 400px;
-            padding: 15px;
-            border-radius: 10px;
-        }
-
-        .column h2 {
-            text-align: center;
-            border-bottom: 2px solid #bdc3c7;
-            padding-bottom: 10px;
-        }
-
-        /* Kartu Tugas (Sticky Note) */
-        .task-card {
-            background-color: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            animation: muncul 0.3s ease;
-        }
-
+        .board { display: flex; justify-content: space-between; gap: 20px; }
+        .column { background-color: #ecf0f1; color: #2c3e50; width: 32%; min-height: 400px; padding: 15px; border-radius: 10px; }
+        .column h2 { text-align: center; border-bottom: 2px solid #bdc3c7; padding-bottom: 10px; }
+        .task-card { background-color: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; animation: muncul 0.3s ease; }
         .task-text { font-weight: 500; }
-
-        .action-btn {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        button.move, button.delete {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
+        .action-btn { display: flex; justify-content: space-between; }
+        button.move, button.delete { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
         button.move { background-color: #3498db; color: white; }
         button.delete { background-color: #e74c3c; color: white; }
-
-        @keyframes muncul {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
+        .btn-reset { display: block; margin: 20px auto; background-color: #c0392b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        @keyframes muncul { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <h1>🚀 Team Scrum Board</h1>
+    <h1>🚀 Team Scrum Board V2 (Auto-Save)</h1>
 
     <div class="input-area">
-        <input type="text" id="inputTugas" placeholder="Apa tugasmu hari ini? (Misal: Bikin Login Page)">
-        <button class="btn-add" onclick="tambahTugas()">+ Tambah Tugas</button>
+        <input type="text" id="inputTugas" placeholder="Tugas baru...">
+        <button class="btn-add" onclick="tambahTugas()">+ Tambah</button>
     </div>
 
     <div class="board">
         <div class="column" id="col-todo">
             <h2>📝 To Do</h2>
-            </div>
-
+        </div>
         <div class="column" id="col-progress">
             <h2>🔥 In Progress</h2>
         </div>
-
         <div class="column" id="col-done">
             <h2>✅ Done</h2>
         </div>
     </div>
 
+    <button class="btn-reset" onclick="resetData()">⚠️ Hapus Semua Data</button>
+
     <script>
-        // JAVASCRIPT: Otak dari aplikasi ini
+        // SAAT WEBSITE DIMUAT PERTAMA KALI
+        // Cek apakah ada data tersimpan? Kalau ada, tampilkan.
+        document.addEventListener('DOMContentLoaded', loadData);
 
         function tambahTugas() {
-            // 1. Ambil nilai dari input
             let input = document.getElementById('inputTugas');
             let text = input.value;
+            if (text === "") return alert("Isi dulu woy!");
 
-            // Validasi: Kalau kosong jangan diproses
-            if (text === "") {
-                alert("Woy, isi dulu tugasnya!");
-                return;
-            }
+            // Buat kartu visualnya
+            createCardElement(text, 'col-todo');
 
-            // 2. Buat elemen kartu baru (DIV)
+            input.value = "";
+            
+            // SIMPAN DATA KE MEMORI
+            simpanData(); 
+        }
+
+        // Fungsi Pembantu: Hanya untuk membuat HTML Card
+        function createCardElement(text, columnId) {
             let card = document.createElement('div');
             card.className = 'task-card';
+            
+            // Cek tombol status
+            let tombolAction = columnId === 'col-done' 
+                ? `<button class="move" style="background-color:#27ae60; cursor:default" disabled>Selesai 🎉</button>`
+                : `<button class="move" onclick="pindahKartu(this)">Maju ➡️</button>`;
 
-            // 3. Isi HTML di dalam kartu (Text + Tombol)
             card.innerHTML = `
                 <span class="task-text">${text}</span>
                 <div class="action-btn">
                     <button class="delete" onclick="hapusKartu(this)">Hapus</button>
-                    <button class="move" onclick="pindahKartu(this)">Maju ➡️</button>
+                    ${tombolAction}
                 </div>
             `;
-
-            // 4. Masukkan kartu ke kolom "To Do"
-            document.getElementById('col-todo').appendChild(card);
-
-            // 5. Kosongkan input lagi
-            input.value = "";
+            document.getElementById(columnId).appendChild(card);
         }
 
         function hapusKartu(tombol) {
-            // Logic: Cari bapaknya tombol (div card), lalu hapus
-            let card = tombol.parentElement.parentElement;
-            card.remove();
+            if(confirm("Yakin mau dihapus?")) {
+                let card = tombol.parentElement.parentElement;
+                card.remove();
+                simpanData(); // UPDATE MEMORI SETELAH HAPUS
+            }
         }
 
         function pindahKartu(tombol) {
-            // Logic: Cari kartu ini sekarang ada di kolom mana?
             let card = tombol.parentElement.parentElement;
-            let kolomSekarang = card.parentElement.id;
+            let currentColumn = card.parentElement.id;
 
-            if (kolomSekarang === 'col-todo') {
-                // Pindah ke Progress
+            if (currentColumn === 'col-todo') {
                 document.getElementById('col-progress').appendChild(card);
-            } else if (kolomSekarang === 'col-progress') {
-                // Pindah ke Done
+            } else if (currentColumn === 'col-progress') {
                 document.getElementById('col-done').appendChild(card);
-                // Ubah tombol jadi "Selesai" dan matikan
                 tombol.innerText = "Selesai 🎉";
-                tombol.style.backgroundColor = "#27ae60"; // Hijau
+                tombol.style.backgroundColor = "#27ae60";
                 tombol.disabled = true;
                 tombol.style.cursor = "default";
+            }
+            simpanData(); // UPDATE MEMORI SETELAH PINDAH
+        }
+
+        // --- INI BAGIAN LOGIKA LOCALSTORAGE ---
+
+        function simpanData() {
+            // Kita siapkan wadah (Array) untuk menampung teks tugas
+            const data = {
+                todo: [],
+                progress: [],
+                done: []
+            };
+
+            // Ambil semua teks dari kolom To Do
+            document.querySelectorAll('#col-todo .task-text').forEach(span => data.todo.push(span.innerText));
+            
+            // Ambil semua teks dari kolom Progress
+            document.querySelectorAll('#col-progress .task-text').forEach(span => data.progress.push(span.innerText));
+            
+            // Ambil semua teks dari kolom Done
+            document.querySelectorAll('#col-done .task-text').forEach(span => data.done.push(span.innerText));
+
+            // Ubah Objek jadi String JSON, lalu simpan
+            localStorage.setItem('scrumData', JSON.stringify(data));
+        }
+
+        function loadData() {
+            // Ambil data dari memori
+            const dataString = localStorage.getItem('scrumData');
+            
+            // Kalau data kosong (belum pernah pakai), stop di sini
+            if (!dataString) return;
+
+            // Ubah String JSON kembali jadi Objek
+            const data = JSON.parse(dataString);
+
+            // Tampilkan kembali kartu-kartunya (Looping)
+            data.todo.forEach(text => createCardElement(text, 'col-todo'));
+            data.progress.forEach(text => createCardElement(text, 'col-progress'));
+            data.done.forEach(text => createCardElement(text, 'col-done'));
+        }
+
+        function resetData() {
+            if(confirm("Ini akan menghapus semua tugas selamanya. Yakin?")) {
+                localStorage.removeItem('scrumData');
+                location.reload(); // Refresh halaman
             }
         }
     </script>
